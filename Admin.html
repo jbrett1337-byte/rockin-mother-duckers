@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>RMD Giveaway Admin</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080808;color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center}.header{padding:28px 16px 8px}.header h1{margin:0;font-size:clamp(2rem,8vw,4.5rem);font-style:italic;text-transform:uppercase;line-height:.95}.rockin{color:#fff}.duckers{color:#f5b800}.header p{color:#aaa;font-size:1.05rem;margin:12px 0 0}.wheel-area{position:relative;width:min(90vw,650px);aspect-ratio:1;margin:12px auto 25px}#pointer{position:absolute;z-index:5;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:28px solid transparent;border-right:28px solid transparent;border-top:55px solid #f5b800;filter:drop-shadow(0 3px 3px #000)}#wheel{width:100%;height:100%;border-radius:50%;border:10px solid #f5b800;background:#222;box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);transition:transform 6s cubic-bezier(.15,.85,.15,1)}button{border:none;border-radius:12px;padding:14px 18px;font-size:1rem;font-weight:800;cursor:pointer;text-transform:uppercase;background:#f5b800;color:#111;box-shadow:0 4px 0 #8f6900}button:disabled{opacity:.5;cursor:not-allowed}.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px 16px 25px}.secondary{background:#333;color:#fff;box-shadow:none}.admin-panel{width:min(92vw,700px);margin:14px auto;background:#151515;border:2px solid #333;border-radius:18px;padding:16px}.add-row{display:flex;gap:8px;justify-content:center}.add-row input{flex:1;min-width:0;padding:14px;border-radius:10px;border:1px solid #555;background:#0c0c0c;color:#fff;font-size:1rem}.entries{width:min(92vw,700px);margin:0 auto 40px}.entries h3{color:#f5b800}.entry{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#181818;border:1px solid #333;border-radius:12px;padding:10px 12px;margin:7px 0;text-align:left}.entry .actions{display:flex;gap:6px}.entry .mini{padding:6px 10px;font-size:.85rem;box-shadow:none}.entry .remove{background:#b31313;color:#fff}.empty{color:#777;padding:20px}.status{color:#f5b800;font-weight:bold}#winner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;align-items:center;justify-content:center;padding:20px}#winner.show{display:flex}.winner-box{background:#151515;border:4px solid #f5b800;border-radius:25px;padding:40px 25px;max-width:500px;width:100%;box-shadow:0 0 50px rgba(245,184,0,.5)}.winner-box h2{font-size:1.1rem;letter-spacing:2px;color:#f5b800;margin:0 0 15px}#winnerName{font-size:clamp(2rem,10vw,4rem);margin:0 0 25px;word-break:break-word}@media(max-width:480px){.add-row{flex-direction:column}.add-row button{width:100%}}</style></head>
+<body>
+
+<div class="header">
+<h1><span class="rockin">RMD</span><span class="duckers"> ADMIN</span></h1>
+<p>🦆 GIVEAWAY CONTROL PANEL</p>
+</div>
+
+<div class="admin-panel">
+<div class="add-row">
+<input id="nameInput" maxlength="60" placeholder="Enter a name...">
+<button id="addBtn">+ Add Entry</button>
+</div>
+<p class="status" id="status">Connected</p>
+</div>
+
+<div class="wheel-area">
+<div id="pointer"></div>
+<canvas id="wheel" width="700" height="700"></canvas>
+</div>
+
+<div class="controls">
+<button id="spinBtn">🦆 SPIN THE MOTHER DUCKER!</button>
+<button id="resetBtn" class="secondary">Reset Display</button>
+</div>
+
+<div class="entries">
+<h3>ADMIN ENTRIES</h3>
+<div id="count"></div>
+<div id="entryList"></div>
+</div>
+
+<div id="winner">
+<div class="winner-box">
+<h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+<h1 id="winnerName"></h1>
+<button onclick="document.getElementById('winner').classList.remove('show')">Close</button>
+</div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,onValue,set} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain: "rmd-giveaway.firebaseapp.com",
+  databaseURL: "https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId: "rmd-giveaway",
+  storageBucket: "rmd-giveaway.firebasestorage.app",
+  messagingSenderId: "891164634736",
+  appId: "1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+let entries=[];
+let rotation=0;
+let spinning=false;
+
+function drawWheel(){
+  const s=canvas.width,c=s/2,r=c-8;
+  ctx.clearRect(0,0,s,s);
+
+  if(!entries.length){
+    ctx.beginPath();
+    ctx.arc(c,c,r,0,Math.PI*2);
+    ctx.fillStyle="#222";
+    ctx.fill();
+    ctx.fillStyle="#f5b800";
+    ctx.font="bold 28px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("ADD ENTRIES",c,c);
+    return;
+  }
+
+  const slice=Math.PI*2/entries.length;
+
+  entries.forEach((name,i)=>{
+    const st=i*slice-Math.PI/2;
+
+    ctx.beginPath();
+    ctx.moveTo(c,c);
+    ctx.arc(c,c,r,st,st+slice);
+    ctx.closePath();
+
+    ctx.fillStyle=i%3===0?"#b31313":i%3===1?"#181818":"#08783d";
+    ctx.fill();
+
+    ctx.strokeStyle="#f5b800";
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(c,c);
+    ctx.rotate(st+slice/2);
+
+    ctx.fillStyle="#fff";
+    ctx.font=`bold ${Math.max(10,Math.min(22,220/entries.length))}px Arial`;
+    ctx.textAlign="right";
+    ctx.fillText(name.length>20?name.slice(0,20)+"…":name,r-28,6);
+
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(c,c,70,0,Math.PI*2);
+  ctx.fillStyle="#f5b800";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(c,c,55,0,Math.PI*2);
+  ctx.fillStyle="#111";
+  ctx.fill();
+
+  ctx.fillStyle="#f5b800";
+  ctx.font="bold 16px Arial";
+  ctx.textAlign="center";
+  ctx.fillText("RMD",c,c+6);
+}
+
+function render(){
+  document.getElementById("count").textContent=
+    `${entries.length} total entr${entries.length===1?"y":"ies"}`;
+
+  const list=document.getElementById("entryList");
+  list.innerHTML=entries.length?"":"<div class='empty'>No entries yet.</div>";
+
+  entries.forEach((n,i)=>{
+    const row=document.createElement("div");
+    row.className="entry";
+
+    const name=document.createElement("span");
+    name.textContent=n;
+
+    const actions=document.createElement("div");
+    actions.className="actions";
+
+    const plus=document.createElement("button");
+    plus.className="mini";
+    plus.textContent="+1";
+    plus.onclick=()=>{
+      entries.splice(i+1,0,n);
+      saveEntries();
+    };
+
+    const del=document.createElement("button");
+    del.className="mini remove";
+    del.textContent="Remove";
+    del.onclick=()=>{
+      entries.splice(i,1);
+      saveEntries();
+    };
+
+    actions.append(plus,del);
+    row.append(name,actions);
+    list.append(row);
+  });
+
+  drawWheel();
+}
+
+function saveEntries(){
+  set(ref(db,"giveaway/entries"),entries);
+}
+
+onValue(ref(db,"giveaway/entries"),s=>{
+  entries=Array.isArray(s.val())?s.val().filter(Boolean):[];
+  render();
+});
+
+function add(){
+  const i=document.getElementById("nameInput");
+  const n=i.value.trim();
+
+  if(!n)return;
+
+  entries.push(n);
+  i.value="";
+  saveEntries();
+  i.focus();
+}
+
+document.getElementById("addBtn").onclick=add;
+
+document.getElementById("nameInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter")add();
+});
+
+document.getElementById("spinBtn").onclick=async()=>{
+  if(spinning||entries.length<2){
+    alert("Add at least 2 entries.");
+    return;
+  }
+
+  spinning=true;
+
+  const winnerIndex=Math.floor(Math.random()*entries.length);
+  const deg=360/entries.length;
+  const center=winnerIndex*deg+deg/2;
+
+  rotation+=360*8+(360-center);
+
+  canvas.style.transform=`rotate(${rotation}deg)`;
+
+  await set(ref(db,"giveaway/spin"),{
+    id:Date.now(),
+    winnerIndex
+  });
+
+  setTimeout(()=>{
+    document.getElementById("winnerName").textContent=entries[winnerIndex];
+    document.getElementById("winner").classList.add("show");
+    spinning=false;
+  },6100);
+};
+
+document.getElementById("resetBtn").onclick=()=>{
+  if(spinning)return;
+
+  rotation=0;
+  canvas.style.transition="none";
+  canvas.style.transform="rotate(0deg)";
+
+  setTimeout(()=>{
+    canvas.style.transition="transform 6s cubic-bezier(.15,.85,.15,1)";
+  },50);
+};
+</script>
+
+</body>
+</html>
