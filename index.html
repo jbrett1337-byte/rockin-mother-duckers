@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Rockin Mother Duckers Giveaway</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:#080808;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  text-align:center
+}
+
+.header{
+  padding:28px 16px 8px
+}
+
+.header h1{
+  margin:0;
+  font-size:clamp(2rem,8vw,4.5rem);
+  font-style:italic;
+  text-transform:uppercase;
+  line-height:.95
+}
+
+.rockin{color:#fff}
+.duckers{color:#f5b800}
+
+.header p{
+  color:#aaa;
+  font-size:1.05rem;
+  margin:12px 0 0
+}
+
+.viewer-note{
+  color:#aaa;
+  margin:0 15px 12px
+}
+
+.wheel-area{
+  position:relative;
+  width:min(90vw,650px);
+  aspect-ratio:1;
+  margin:12px auto 25px
+}
+
+#pointer{
+  position:absolute;
+  z-index:5;
+  top:-5px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:28px solid transparent;
+  border-right:28px solid transparent;
+  border-top:55px solid #f5b800
+}
+
+#wheel{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  border:10px solid #f5b800;
+  background:#222;
+  transition:transform 20s cubic-bezier(.12,.85,.15,1)
+}
+
+.entries{
+  width:min(92vw,700px);
+  margin:0 auto 40px
+}
+
+.entries h3{
+  color:#f5b800
+}
+
+.entry{
+  background:#181818;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:10px 12px;
+  margin:7px 0;
+  text-align:left
+}
+
+.empty{
+  color:#777;
+  padding:20px
+}
+
+#winner{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.88);
+  z-index:20;
+  align-items:center;
+  justify-content:center;
+  padding:20px
+}
+
+#winner.show{
+  display:flex
+}
+
+.winner-box{
+  background:#151515;
+  border:4px solid #f5b800;
+  border-radius:25px;
+  padding:40px 25px;
+  max-width:500px;
+  width:100%
+}
+
+.winner-box h2{
+  font-size:1.1rem;
+  letter-spacing:2px;
+  color:#f5b800
+}
+
+#winnerName{
+  font-size:clamp(2rem,10vw,4rem);
+  word-break:break-word
+}
+
+.footer{
+  color:#555;
+  padding:20px
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+  <h1>
+    <span class="rockin">ROCKIN MOTHER</span>
+    <span class="duckers"> DUCKERS</span>
+  </h1>
+
+  <p>🦆 800 MEMBER GIVEAWAY 🎡</p>
+
+</div>
+
+<p class="viewer-note">
+  LIVE GIVEAWAY • Sit back and watch the wheel. 🤘🦆
+</p>
+
+<div class="wheel-area">
+
+  <div id="pointer"></div>
+
+  <canvas
+    id="wheel"
+    width="700"
+    height="700"
+  ></canvas>
+
+</div>
+
+<div class="entries">
+
+  <h3>GIVEAWAY ENTRIES</h3>
+
+  <div id="count"></div>
+
+  <div id="entryList"></div>
+
+</div>
+
+<div id="winner">
+
+  <div class="winner-box">
+
+    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+
+    <h1 id="winnerName"></h1>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  ROCKIN MOTHER DUCKERS • LIVE GIVEAWAY
+</div>
+
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain: "rmd-giveaway.firebaseapp.com",
+  databaseURL: "https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId: "rmd-giveaway",
+  storageBucket: "rmd-giveaway.firebasestorage.app",
+  messagingSenderId: "891164634736",
+  appId: "1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+const SPIN_DURATION=20000;
+
+let entries=[];
+let rotation=0;
+let spinning=false;
+
+let firstSpinLoad=true;
+let lastSpinId=null;
+
+
+/* DRAW WHEEL */
+
+function drawWheel(){
+
+  const s=canvas.width;
+  const c=s/2;
+  const r=c-8;
+
+  ctx.clearRect(0,0,s,s);
+
+
+  if(!entries.length){
+
+    ctx.beginPath();
+    ctx.arc(c,c,r,0,Math.PI*2);
+
+    ctx.fillStyle="#222";
+    ctx.fill();
+
+    ctx.fillStyle="#f5b800";
+    ctx.font="bold 28px Arial";
+    ctx.textAlign="center";
+
+    ctx.fillText("WAITING FOR",c,c-10);
+    ctx.fillText("ENTRIES",c,c+30);
+
+    return;
+  }
+
+
+  const slice=Math.PI*2/entries.length;
+
+
+  entries.forEach((name,i)=>{
+
+    const start=
+      i*slice-Math.PI/2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(c,c);
+
+    ctx.arc(
+      c,c,r,
+      start,
+      start+slice
+    );
+
+    ctx.closePath();
+
+
+    ctx.fillStyle=
+      i%3===0 ? "#b31313" :
+      i%3===1 ? "#181818" :
+      "#08783d";
+
+    ctx.fill();
+
+    ctx.strokeStyle="#f5b800";
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+
+    ctx.save();
+
+    ctx.translate(c,c);
+
+    ctx.rotate(
+      start+slice/2
+    );
+
+    ctx.fillStyle="#fff";
+
+    ctx.font=`bold ${
+      Math.max(
+        10,
+        Math.min(
+          22,
+          220/entries.length
+        )
+      )
+    }px Arial`;
+
+    ctx.textAlign="right";
+
+
+    const displayName=
+      name.length>20
+      ? name.slice(0,20)+"…"
+      : name;
+
+
+    ctx.fillText(
+      displayName,
+      r-28,
+      6
+    );
+
+    ctx.restore();
+
+  });
+
+
+  ctx.beginPath();
+
+  ctx.arc(
+    c,c,70,0,Math.PI*2
+  );
+
+  ctx.fillStyle="#f5b800";
+  ctx.fill();
+
+
+  ctx.beginPath();
+
+  ctx.arc(
+    c,c,55,0,Math.PI*2
+  );
+
+  ctx.fillStyle="#111";
+  ctx.fill();
+
+
+  ctx.fillStyle="#f5b800";
+
+  ctx.font="bold 16px Arial";
+
+  ctx.textAlign="center";
+
+  ctx.fillText(
+    "RMD",
+    c,
+    c+6
+  );
+
+}
+
+
+/* RENDER ENTRIES */
+
+function render(){
+
+  document.getElementById("count")
+  .textContent=
+    `${entries.length} total ${
+      entries.length===1
+      ? "entry"
+      : "entries"
+    }`;
+
+
+  document.getElementById("entryList")
+  .innerHTML=
+
+    entries.length
+
+    ? entries.map(name=>
+        `<div class="entry">${name}</div>`
+      ).join("")
+
+    : `<div class="empty">
+        Entries will appear here.
+      </div>`;
+
+
+  drawWheel();
+
+}
+
+
+/* LIVE ENTRIES */
+
+onValue(
+  ref(db,"giveaway/entries"),
+
+  snap=>{
+
+    entries=
+      Array.isArray(snap.val())
+      ? snap.val().filter(Boolean)
+      : [];
+
+    render();
+
+  }
+);
+
+
+/* SPIN SYSTEM */
+
+onValue(
+  ref(db,"giveaway/spin"),
+
+  snap=>{
+
+    const spin=snap.val();
+
+
+    /*
+    RESET:
+    Firebase spin record was deleted.
+    */
+
+    if(!spin){
+
+      firstSpinLoad=false;
+
+      lastSpinId=null;
+
+      spinning=false;
+
+      document
+      .getElementById("winner")
+      .classList
+      .remove("show");
+
+      return;
+
+    }
+
+
+    /*
+    FIRST PAGE LOAD
+    */
+
+    if(firstSpinLoad){
+
+      firstSpinLoad=false;
+
+      lastSpinId=spin.id;
+
+
+      /*
+      If giveaway is already finished,
+      show winner immediately.
+      */
+
+      if(
+        spin.status==="finished"
+      ){
+
+        document
+        .getElementById("winnerName")
+        .textContent=
+          spin.winnerName;
+
+
+        document
+        .getElementById("winner")
+        .classList
+        .add("show");
+
+      }
+
+      /*
+      If someone joins WHILE
+      the wheel is already spinning,
+      they just watch the wheel.
+      They do not trigger
+      another animation.
+      */
+
+      return;
+
+    }
+
+
+    /*
+    Ignore duplicate update.
+    */
+
+    if(
+      spin.id===lastSpinId &&
+      spin.status==="spinning"
+    ){
+      return;
+    }
+
+
+    /*
+    NEW SPIN STARTED
+    */
+
+    if(
+      spin.status==="spinning" &&
+      spin.id!==lastSpinId
+    ){
+
+      lastSpinId=spin.id;
+
+      spinning=true;
+
+
+      document
+      .getElementById("winner")
+      .classList
+      .remove("show");
+
+
+      const index=
+        spin.winnerIndex;
+
+
+      if(
+        index<0 ||
+        index>=entries.length
+      ){
+        return;
+      }
+
+
+      const deg=
+        360/entries.length;
+
+
+      const center=
+        index*deg+
+        deg/2;
+
+
+      rotation+=
+        360*25+
+        (360-center);
+
+
+      canvas.style.transform=
+        `rotate(${rotation}deg)`;
+
+
+      return;
+
+    }
+
+
+    /*
+    SPIN FINISHED
+    */
+
+    if(
+      spin.status==="finished"
+    ){
+
+      spinning=false;
+
+
+      document
+      .getElementById("winnerName")
+      .textContent=
+        spin.winnerName;
+
+
+      document
+      .getElementById("winner")
+      .classList
+      .add("show");
+
+    }
+
+  }
+);
+
+</script>
+
+</body>
+</html>
