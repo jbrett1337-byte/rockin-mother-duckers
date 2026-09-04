@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RMD Admin Portal</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:#080808;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  text-align:center
+}
+
+.header{
+  padding:28px 16px 8px
+}
+
+.header h1{
+  margin:0;
+  font-size:clamp(2rem,8vw,4.5rem);
+  font-style:italic;
+  text-transform:uppercase
+}
+
+.rockin{color:#fff}
+.duckers{color:#f5b800}
+
+.header p{
+  color:#aaa;
+  margin:10px 0
+}
+
+.admin-panel,.entries{
+  width:min(92vw,700px);
+  margin:15px auto;
+  background:#151515;
+  border:2px solid #333;
+  border-radius:18px;
+  padding:16px
+}
+
+.add-row{
+  display:flex;
+  gap:8px
+}
+
+input{
+  flex:1;
+  min-width:0;
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #555;
+  background:#0c0c0c;
+  color:#fff;
+  font-size:1rem
+}
+
+button{
+  border:none;
+  border-radius:12px;
+  padding:14px 18px;
+  font-size:1rem;
+  font-weight:800;
+  cursor:pointer;
+  text-transform:uppercase;
+  background:#f5b800;
+  color:#111
+}
+
+button:disabled{
+  opacity:.5;
+  cursor:not-allowed
+}
+
+.controls{
+  width:min(92vw,700px);
+  margin:10px auto;
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap
+}
+
+.secondary{
+  background:#333;
+  color:#fff
+}
+
+.shuffle{
+  background:#6f42c1;
+  color:#fff
+}
+
+.sound-on{
+  background:#08783d;
+  color:#fff
+}
+
+.sound-off{
+  background:#b31313;
+  color:#fff
+}
+
+.reset{
+  background:#b31313;
+  color:#fff
+}
+
+.wheel-area{
+  position:relative;
+  width:min(90vw,650px);
+  aspect-ratio:1;
+  margin:20px auto
+}
+
+#pointer{
+  position:absolute;
+  z-index:5;
+  top:-5px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:28px solid transparent;
+  border-right:28px solid transparent;
+  border-top:55px solid #f5b800;
+  filter:drop-shadow(0 3px 3px #000)
+}
+
+#wheel{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  border:10px solid #f5b800;
+  background:#222;
+  box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);
+  transition:transform 6s cubic-bezier(.15,.85,.15,1)
+}
+
+.status{
+  color:#f5b800;
+  font-weight:bold
+}
+
+.entries h3{
+  color:#f5b800
+}
+
+.entry{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  background:#181818;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:10px 12px;
+  margin:7px 0;
+  text-align:left
+}
+
+.entry button{
+  padding:7px 10px;
+  font-size:.8rem;
+  background:#b31313;
+  color:#fff
+}
+
+.empty{
+  color:#777;
+  padding:20px
+}
+
+#winner{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.9);
+  z-index:20;
+  align-items:center;
+  justify-content:center;
+  padding:20px
+}
+
+#winner.show{
+  display:flex
+}
+
+.winner-box{
+  background:#151515;
+  border:4px solid #f5b800;
+  border-radius:25px;
+  padding:40px 25px;
+  max-width:500px;
+  width:100%;
+  box-shadow:0 0 50px rgba(245,184,0,.5)
+}
+
+.winner-box h2{
+  color:#f5b800
+}
+
+#winnerName{
+  font-size:clamp(2rem,10vw,4rem);
+  word-break:break-word
+}
+
+@media(max-width:500px){
+  .add-row{flex-direction:column}
+  .add-row button{width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>
+    <span class="rockin">RMD</span>
+    <span class="duckers"> ADMIN</span>
+  </h1>
+  <p>🦆 GIVEAWAY CONTROL PANEL</p>
+</div>
+
+<div class="admin-panel">
+
+  <div class="add-row">
+    <input id="nameInput" maxlength="60" placeholder="Enter a name...">
+    <button id="addBtn">+ Add Entry</button>
+  </div>
+
+  <p class="status" id="status">Connected</p>
+
+</div>
+
+<div class="wheel-area">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="700" height="700"></canvas>
+</div>
+
+<div class="controls">
+
+  <button id="spinBtn">
+    🦆 SPIN THE MOTHER DUCKER!
+  </button>
+
+  <button id="shuffleBtn" class="shuffle">
+    🔀 SHUFFLE ENTRIES
+  </button>
+
+  <button id="soundBtn" class="sound-off">
+    🔇 SOUND OFF
+  </button>
+
+  <button id="resetBtn" class="reset">
+    🔄 RESET DISPLAY
+  </button>
+
+</div>
+
+<div class="entries">
+
+  <h3>ADMIN ENTRIES</h3>
+
+  <div id="count"></div>
+
+  <div id="entryList"></div>
+
+</div>
+
+<div id="winner">
+
+  <div class="winner-box">
+
+    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+
+    <h1 id="winnerName"></h1>
+
+    <button onclick="document.getElementById('winner').classList.remove('show')">
+      Close
+    </button>
+
+  </div>
+
+</div>
+
+<script type="module">
+
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue,
+  set
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain:"rmd-giveaway.firebaseapp.com",
+  databaseURL:"https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId:"rmd-giveaway",
+  storageBucket:"rmd-giveaway.firebasestorage.app",
+  messagingSenderId:"891164634736",
+  appId:"1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+let entries=[];
+let rotation=0;
+let spinning=false;
+let soundEnabled=false;
+
+const nameInput=document.getElementById("nameInput");
+const addBtn=document.getElementById("addBtn");
+const spinBtn=document.getElementById("spinBtn");
+const shuffleBtn=document.getElementById("shuffleBtn");
+const soundBtn=document.getElementById("soundBtn");
+const resetBtn=document.getElementById("resetBtn");
+
+
+/* DRAW WHEEL */
+
+function drawWheel(){
+
+  const s=canvas.width;
+  const c=s/2;
+  const r=c-8;
+
+  ctx.clearRect(0,0,s,s);
+
+  if(!entries.length){
+
+    ctx.beginPath();
+    ctx.arc(c,c,r,0,Math.PI*2);
+    ctx.fillStyle="#222";
+    ctx.fill();
+
+    ctx.fillStyle="#f5b800";
+    ctx.font="bold 28px Arial";
+    ctx.textAlign="center";
+
+    ctx.fillText("ADD ENTRIES",c,c);
+
+    return;
+  }
+
+  const slice=Math.PI*2/entries.length;
+
+  entries.forEach((name,i)=>{
+
+    const start=i*slice-Math.PI/2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(c,c);
+
+    ctx.arc(
+      c,
+      c,
+      r,
+      start,
+      start+slice
+    );
+
+    ctx.closePath();
+
+    ctx.fillStyle=
+      i%3===0
+      ?"#b31313"
+      :i%3===1
+      ?"#181818"
+      :"#08783d";
+
+    ctx.fill();
+
+    ctx.strokeStyle="#f5b800";
+    ctx.lineWidth=3;
+
+    ctx.stroke();
+
+    ctx.save();
+
+    ctx.translate(c,c);
+
+    ctx.rotate(start+slice/2);
+
+    ctx.fillStyle="#fff";
+
+    ctx.font=
+      `bold ${Math.max(
+        10,
+        Math.min(
+          22,
+          220/entries.length
+        )
+      )}px Arial`;
+
+    ctx.textAlign="right";
+
+    const text=
+      name.length>20
+      ?name.slice(0,20)+"…"
+      :name;
+
+    ctx.fillText(
+      text,
+      r-28,
+      6
+    );
+
+    ctx.restore();
+
+  });
+
+  ctx.beginPath();
+
+  ctx.arc(c,c,70,0,Math.PI*2);
+
+  ctx.fillStyle="#f5b800";
+
+  ctx.fill();
+
+
+  ctx.beginPath();
+
+  ctx.arc(c,c,55,0,Math.PI*2);
+
+  ctx.fillStyle="#111";
+
+  ctx.fill();
+
+
+  ctx.fillStyle="#f5b800";
+
+  ctx.font="bold 16px Arial";
+
+  ctx.textAlign="center";
+
+  ctx.fillText(
+    "RMD",
+    c,
+    c+6
+  );
+
+}
+
+
+/* SAFE TEXT */
+
+function escapeHtml(str){
+
+  const div=document.createElement("div");
+
+  div.textContent=str;
+
+  return div.innerHTML;
+
+}
+
+
+/* RENDER ENTRIES */
+
+function render(){
+
+  document.getElementById("count").textContent=
+    `${entries.length} total entr${
+      entries.length===1
+      ?"y"
+      :"ies"
+    }`;
+
+  const list=
+    document.getElementById("entryList");
+
+  if(!entries.length){
+
+    list.innerHTML=
+      '<div class="empty">No entries yet.</div>';
+
+  }else{
+
+    list.innerHTML=
+      entries.map((name,index)=>`
+
+        <div class="entry">
+
+          <span>
+            ${escapeHtml(name)}
+          </span>
+
+          <button
+            onclick="window.removeEntry(${index})"
+          >
+            REMOVE
+          </button>
+
+        </div>
+
+      `).join("");
+
+  }
+
+  drawWheel();
+
+}
+
+
+/* LOAD ENTRIES */
+
+onValue(
+  ref(db,"giveaway/entries"),
+  snap=>{
+
+    entries=
+      Array.isArray(snap.val())
+      ?snap.val().filter(Boolean)
+      :[];
+
+    render();
+
+  }
+);
+
+
+/* SOUND SETTING */
+
+onValue(
+  ref(db,"giveaway/settings/soundEnabled"),
+  snap=>{
+
+    soundEnabled=
+      snap.val()===true;
+
+    if(soundEnabled){
+
+      soundBtn.textContent=
+        "🔊 SOUND ON";
+
+      soundBtn.className=
+        "sound-on";
+
+    }else{
+
+      soundBtn.textContent=
+        "🔇 SOUND OFF";
+
+      soundBtn.className=
+        "sound-off";
+
+    }
+
+  }
+);
+
+
+/* ADD ENTRY */
+
+async function addEntry(){
+
+  const name=
+    nameInput.value.trim();
+
+  if(!name)return;
+
+  const updated=[
+    ...entries,
+    name
+  ];
+
+  await set(
+    ref(db,"giveaway/entries"),
+    updated
+  );
+
+  nameInput.value="";
+
+  nameInput.focus();
+
+}
+
+addBtn.addEventListener(
+  "click",
+  addEntry
+);
+
+nameInput.addEventListener(
+  "keydown",
+  e=>{
+
+    if(e.key==="Enter"){
+
+      addEntry();
+
+    }
+
+  }
+);
+
+
+/* REMOVE ENTRY */
+
+window.removeEntry=
+async function(index){
+
+  const updated=[
+    ...entries
+  ];
+
+  updated.splice(
+    index,
+    1
+  );
+
+  await set(
+    ref(db,"giveaway/entries"),
+    updated
+  );
+
+};
+
+
+/* REAL SHUFFLE */
+
+function shuffleArray(array){
+
+  const copy=[
+    ...array
+  ];
+
+  for(
+    let i=copy.length-1;
+    i>0;
+    i--
+  ){
+
+    const j=
+      Math.floor(
+        Math.random()*(i+1)
+      );
+
+    [
+      copy[i],
+      copy[j]
+    ]=
+    [
+      copy[j],
+      copy[i]
+    ];
+
+  }
+
+  return copy;
+
+}
+
+shuffleBtn.addEventListener(
+  "click",
+  async()=>{
+
+    if(entries.length<2){
+
+      alert(
+        "You need at least 2 entries to shuffle."
+      );
+
+      return;
+
+    }
+
+    const shuffled=
+      shuffleArray(entries);
+
+    await set(
+      ref(db,"giveaway/entries"),
+      shuffled
+    );
+
+  }
+);
+
+
+/* SOUND TOGGLE */
+
+soundBtn.addEventListener(
+  "click",
+  async()=>{
+
+    await set(
+      ref(db,"giveaway/settings/soundEnabled"),
+      !soundEnabled
+    );
+
+  }
+);
+
+
+/* SPIN */
+
+spinBtn.addEventListener(
+  "click",
+  async()=>{
+
+    if(spinning)return;
+
+    if(!entries.length){
+
+      alert(
+        "Add at least one entry first."
+      );
+
+      return;
+
+    }
+
+    spinning=true;
+
+    spinBtn.disabled=true;
+
+    const winnerIndex=
+      Math.floor(
+        Math.random()*entries.length
+      );
+
+    const spinData={
+      id:Date.now().toString()+"-"+Math.random(),
+      winnerIndex:winnerIndex,
+      timestamp:Date.now()
+    };
+
+    await set(
+      ref(db,"giveaway/spin"),
+      spinData
+    );
+
+    const deg=
+      360/entries.length;
+
+    const center=
+      winnerIndex*deg+
+      deg/2;
+
+    rotation+=
+      360*8+
+      (360-center);
+
+    canvas.style.transform=
+      `rotate(${rotation}deg)`;
+
+    setTimeout(()=>{
+
+      document.getElementById(
+        "winnerName"
+      ).textContent=
+        entries[winnerIndex];
+
+      document.getElementById(
+        "winner"
+      ).classList.add(
+        "show"
+      );
+
+      spinning=false;
+
+      spinBtn.disabled=false;
+
+    },6100);
+
+  }
+);
+
+
+/* RESET EVERYONE */
+
+resetBtn.addEventListener(
+  "click",
+  async()=>{
+
+    spinning=false;
+
+    rotation=0;
+
+    canvas.style.transition="none";
+
+    canvas.style.transform=
+      "rotate(0deg)";
+
+    setTimeout(()=>{
+
+      canvas.style.transition=
+        "transform 6s cubic-bezier(.15,.85,.15,1)";
+
+    },50);
+
+    document.getElementById(
+      "winner"
+    ).classList.remove(
+      "show"
+    );
+
+    await set(
+      ref(db,"giveaway/reset"),
+      {
+        id:Date.now().toString()+"-"+Math.random(),
+        timestamp:Date.now()
+      }
+    );
+
+  }
+);
+
+
+/* INITIAL DRAW */
+
+drawWheel();
+
+</script>
+
+</body>
+</html>
