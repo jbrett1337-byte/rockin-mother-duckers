@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Rockin Mother Duckers Giveaway</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #080808;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 30px 20px 10px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 7vw, 4.5rem);
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -2px;
+  }
+
+  .rockin {
+    color: white;
+  }
+
+  .duckers {
+    color: #f5b800;
+  }
+
+  .header p {
+    color: #aaa;
+    font-size: 1.1rem;
+    margin-top: 10px;
+  }
+
+  .wheel-area {
+    position: relative;
+    width: min(90vw, 650px);
+    aspect-ratio: 1;
+    margin: 10px auto 30px;
+  }
+
+  #pointer {
+    position: absolute;
+    z-index: 5;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 28px solid transparent;
+    border-right: 28px solid transparent;
+    border-top: 55px solid #f5b800;
+    filter: drop-shadow(0 3px 3px black);
+  }
+
+  #wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 10px solid #f5b800;
+    background: #222;
+    box-shadow:
+      0 0 0 5px #111,
+      0 0 35px rgba(245,184,0,.35);
+    transition: transform 6s cubic-bezier(.15,.85,.15,1);
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 20px 40px;
+  }
+
+  button {
+    border: none;
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  #spinBtn {
+    background: #f5b800;
+    color: black;
+    box-shadow: 0 4px 0 #8f6900;
+  }
+
+  #spinBtn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #8f6900;
+  }
+
+  #resetBtn {
+    background: #333;
+    color: white;
+  }
+
+  #winner {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.88);
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #winner.show {
+    display: flex;
+  }
+
+  .winner-box {
+    background: #151515;
+    border: 4px solid #f5b800;
+    border-radius: 25px;
+    padding: 40px 25px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 0 50px rgba(245,184,0,.5);
+  }
+
+  .winner-box h2 {
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    color: #f5b800;
+    margin: 0 0 15px;
+  }
+
+  .winner-box #winnerName {
+    font-size: clamp(2rem, 10vw, 4rem);
+    margin: 0 0 25px;
+    word-break: break-word;
+  }
+
+  .winner-box button {
+    background: #f5b800;
+    color: black;
+  }
+
+  .entries {
+    width: min(90vw, 650px);
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .entries h3 {
+    color: #f5b800;
+  }
+
+  #entryList {
+    color: #aaa;
+    line-height: 1.7;
+    word-break: break-word;
+  }
+
+  .footer {
+    color: #555;
+    padding: 20px;
+    font-size: .85rem;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>
+    <span class="rockin">ROCKIN MOTHER</span>
+    <span class="duckers"> DUCKERS</span>
+  </h1>
+  <p>🦆 800 MEMBER GIVEAWAY 🎡</p>
+</div>
+
+<div class="wheel-area">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="700" height="700"></canvas>
+</div>
+
+<div class="controls">
+  <button id="spinBtn">🦆 Spin The Mother Ducker!</button>
+  <button id="resetBtn">Reset Wheel</button>
+</div>
+
+<div class="entries">
+  <h3>GIVEAWAY ENTRIES</h3>
+  <div id="entryList"></div>
+</div>
+
+<div id="winner">
+  <div class="winner-box">
+    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+    <h1 id="winnerName"></h1>
+    <button onclick="closeWinner()">Keep Rockin 🤘</button>
+  </div>
+</div>
+
+<div class="footer">
+  ROCKIN MOTHER DUCKERS • 800 MEMBER GIVEAWAY
+</div>
+
+<script>
+
+let entries = [
+  "Mother Ducker #1",
+  "Mother Ducker #2",
+  "Mother Ducker #3",
+  "Mother Ducker #4",
+  "Mother Ducker #5",
+  "Mother Ducker #6",
+  "Mother Ducker #7",
+  "Mother Ducker #8"
+];
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+let rotation = 0;
+let spinning = false;
+
+function drawWheel() {
+
+  const size = canvas.width;
+  const center = size / 2;
+  const radius = center - 8;
+
+  ctx.clearRect(0, 0, size, size);
+
+  const slice = (Math.PI * 2) / entries.length;
+
+  entries.forEach((name, i) => {
+
+    const start = i * slice - Math.PI / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(center, center);
+    ctx.arc(center, center, radius, start, start + slice);
+    ctx.closePath();
+
+    if (i % 3 === 0) {
+      ctx.fillStyle = "#b31313";
+    } else if (i % 3 === 1) {
+      ctx.fillStyle = "#151515";
+    } else {
+      ctx.fillStyle = "#08783d";
+    }
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#f5b800";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.save();
+
+    ctx.translate(center, center);
+    ctx.rotate(start + slice / 2);
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 22px Arial";
+    ctx.textAlign = "right";
+
+    let displayName = name;
+
+    if (displayName.length > 18) {
+      displayName = displayName.substring(0, 18) + "...";
+    }
+
+    ctx.fillText(displayName, radius - 35, 8);
+
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(center, center, 70, 0, Math.PI * 2);
+  ctx.fillStyle = "#f5b800";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(center, center, 55, 0, Math.PI * 2);
+  ctx.fillStyle = "#111";
+  ctx.fill();
+
+  ctx.fillStyle = "#f5b800";
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("RMD", center, center + 6);
+}
+
+function updateEntryList() {
+  document.getElementById("entryList").textContent =
+    entries.join(" • ");
+}
+
+function spinWheel() {
+
+  if (spinning || entries.length < 2) return;
+
+  spinning = true;
+
+  const winnerIndex =
+    Math.floor(Math.random() * entries.length);
+
+  const sliceDegrees = 360 / entries.length;
+
+  const winnerCenter =
+    winnerIndex * sliceDegrees + sliceDegrees / 2;
+
+  const extraSpins =
+    360 * (6 + Math.floor(Math.random() * 4));
+
+  const targetRotation =
+    extraSpins + (360 - winnerCenter);
+
+  rotation += targetRotation;
+
+  canvas.style.transform =
+    `rotate(${rotation}deg)`;
+
+  setTimeout(() => {
+
+    document.getElementById("winnerName").textContent =
+      entries[winnerIndex];
+
+    document.getElementById("winner")
+      .classList.add("show");
+
+    spinning = false;
+
+  }, 6100);
+}
+
+function closeWinner() {
+  document.getElementById("winner")
+    .classList.remove("show");
+}
+
+function resetWheel() {
+
+  if (spinning) return;
+
+  rotation = 0;
+
+  canvas.style.transition = "none";
+  canvas.style.transform = "rotate(0deg)";
+
+  setTimeout(() => {
+    canvas.style.transition =
+      "transform 6s cubic-bezier(.15,.85,.15,1)";
+  }, 50);
+}
+
+document
+  .getElementById("spinBtn")
+  .addEventListener("click", spinWheel);
+
+document
+  .getElementById("resetBtn")
+  .addEventListener("click", resetWheel);
+
+drawWheel();
+updateEntryList();
+
+</script>
+
+</body>
+</html>
