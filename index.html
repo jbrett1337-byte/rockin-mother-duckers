@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rockin Mother Duckers Giveaway</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:#080808;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  text-align:center
+}
+
+.header{
+  padding:28px 16px 8px
+}
+
+.header h1{
+  margin:0;
+  font-size:clamp(2rem,8vw,4.5rem);
+  font-style:italic;
+  text-transform:uppercase;
+  line-height:.95
+}
+
+.rockin{color:#fff}
+.duckers{color:#f5b800}
+
+.header p{
+  color:#aaa;
+  font-size:1.05rem;
+  margin:12px 0 0
+}
+
+.wheel-area{
+  position:relative;
+  width:min(90vw,650px);
+  aspect-ratio:1;
+  margin:12px auto 25px
+}
+
+#pointer{
+  position:absolute;
+  z-index:5;
+  top:-5px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:28px solid transparent;
+  border-right:28px solid transparent;
+  border-top:55px solid #f5b800;
+  filter:drop-shadow(0 3px 3px #000)
+}
+
+#wheel{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  border:10px solid #f5b800;
+  background:#222;
+  box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);
+  transition:transform 6s cubic-bezier(.15,.85,.15,1)
+}
+
+.entries{
+  width:min(92vw,700px);
+  margin:0 auto 40px
+}
+
+.entries h3{
+  color:#f5b800
+}
+
+.entry{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  background:#181818;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:10px 12px;
+  margin:7px 0;
+  text-align:left
+}
+
+.empty{
+  color:#777;
+  padding:20px
+}
+
+.viewer-note{
+  color:#aaa;
+  margin:0 15px 12px
+}
+
+.footer{
+  color:#555;
+  padding:20px;
+  font-size:.85rem
+}
+
+#winner{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.88);
+  z-index:20;
+  align-items:center;
+  justify-content:center;
+  padding:20px
+}
+
+#winner.show{
+  display:flex
+}
+
+.winner-box{
+  background:#151515;
+  border:4px solid #f5b800;
+  border-radius:25px;
+  padding:40px 25px;
+  max-width:500px;
+  width:100%;
+  box-shadow:0 0 50px rgba(245,184,0,.5)
+}
+
+.winner-box h2{
+  font-size:1.1rem;
+  letter-spacing:2px;
+  color:#f5b800;
+  margin:0 0 15px
+}
+
+#winnerName{
+  font-size:clamp(2rem,10vw,4rem);
+  margin:0 0 25px;
+  word-break:break-word
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>
+    <span class="rockin">ROCKIN MOTHER</span>
+    <span class="duckers"> DUCKERS</span>
+  </h1>
+  <p>🦆 800 MEMBER GIVEAWAY 🎡</p>
+</div>
+
+<p class="viewer-note">
+  LIVE GIVEAWAY • Sit back and watch the wheel. 🤘🦆
+</p>
+
+<div class="wheel-area">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="700" height="700"></canvas>
+</div>
+
+<div class="entries">
+  <h3>GIVEAWAY ENTRIES</h3>
+  <div id="count"></div>
+  <div id="entryList"></div>
+</div>
+
+<div id="winner">
+  <div class="winner-box">
+    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+    <h1 id="winnerName"></h1>
+  </div>
+</div>
+
+<div class="footer">
+  ROCKIN MOTHER DUCKERS • LIVE GIVEAWAY
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import { getDatabase, ref, onValue } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain: "rmd-giveaway.firebaseapp.com",
+  databaseURL: "https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId: "rmd-giveaway",
+  storageBucket: "rmd-giveaway.firebasestorage.app",
+  messagingSenderId: "891164634736",
+  appId: "1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+
+let entries = [];
+let rotation = 0;
+let spinning = false;
+
+/* 
+The important fix:
+
+When someone FIRST joins the page, Firebase sends the
+current/latest spin. We remember that spin but DO NOT
+animate it.
+
+Only spins that happen AFTER they are already watching
+will animate.
+*/
+
+let lastSpinId = null;
+let spinListenerReady = false;
+
+
+function drawWheel(){
+
+  const s = canvas.width;
+  const c = s / 2;
+  const r = c - 8;
+
+  ctx.clearRect(0,0,s,s);
+
+
+  if(!entries.length){
+
+    ctx.beginPath();
+    ctx.arc(c,c,r,0,Math.PI*2);
+
+    ctx.fillStyle="#222";
+    ctx.fill();
+
+    ctx.fillStyle="#f5b800";
+    ctx.font="bold 28px Arial";
+    ctx.textAlign="center";
+
+    ctx.fillText("WAITING FOR",c,c-10);
+    ctx.fillText("ENTRIES",c,c+30);
+
+    return;
+  }
+
+
+  const slice = Math.PI * 2 / entries.length;
+
+
+  entries.forEach((name,i)=>{
+
+    const start = i * slice - Math.PI / 2;
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(c,c);
+
+    ctx.arc(
+      c,
+      c,
+      r,
+      start,
+      start + slice
+    );
+
+    ctx.closePath();
+
+
+    ctx.fillStyle =
+      i % 3 === 0
+        ? "#b31313"
+        : i % 3 === 1
+        ? "#181818"
+        : "#08783d";
+
+    ctx.fill();
+
+
+    ctx.strokeStyle="#f5b800";
+    ctx.lineWidth=3;
+
+    ctx.stroke();
+
+
+    ctx.save();
+
+    ctx.translate(c,c);
+
+    ctx.rotate(
+      start + slice / 2
+    );
+
+
+    ctx.fillStyle="#fff";
+
+
+    ctx.font =
+      `bold ${
+        Math.max(
+          10,
+          Math.min(
+            22,
+            220 / entries.length
+          )
+        )
+      }px Arial`;
+
+
+    ctx.textAlign="right";
+
+
+    const displayName =
+      name.length > 20
+        ? name.slice(0,20)+"…"
+        : name;
+
+
+    ctx.fillText(
+      displayName,
+      r-28,
+      6
+    );
+
+
+    ctx.restore();
+
+  });
+
+
+  ctx.beginPath();
+
+  ctx.arc(
+    c,
+    c,
+    70,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fillStyle="#f5b800";
+
+  ctx.fill();
+
+
+  ctx.beginPath();
+
+  ctx.arc(
+    c,
+    c,
+    55,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fillStyle="#111";
+
+  ctx.fill();
+
+
+  ctx.fillStyle="#f5b800";
+
+  ctx.font="bold 16px Arial";
+
+  ctx.textAlign="center";
+
+  ctx.fillText(
+    "RMD",
+    c,
+    c+6
+  );
+
+}
+
+
+function render(){
+
+  document.getElementById("count").textContent =
+    `${entries.length} total entr${
+      entries.length === 1
+        ? "y"
+        : "ies"
+    }`;
+
+
+  document.getElementById("entryList").innerHTML =
+
+    entries.length
+
+      ? entries.map(name =>
+
+          `<div class="entry">
+            <span>${name}</span>
+          </div>`
+
+        ).join("")
+
+      :
+
+        `<div class="empty">
+          Entries will appear here.
+        </div>`;
+
+
+  drawWheel();
+
+}
+
+
+/* LIVE ENTRY UPDATES */
+
+onValue(
+  ref(db,"giveaway/entries"),
+
+  snap => {
+
+    entries =
+      Array.isArray(snap.val())
+
+        ? snap.val().filter(Boolean)
+
+        : [];
+
+    render();
+
+  }
+
+);
+
+
+/* LIVE SPIN SYSTEM */
+
+onValue(
+  ref(db,"giveaway/spin"),
+
+  snap => {
+
+    const d = snap.val();
+
+
+    if(!d) return;
+
+
+    /*
+    FIRST TIME THIS PAGE CONNECTS:
+
+    Remember the current spin.
+
+    DO NOT ANIMATE IT.
+    */
+
+    if(!spinListenerReady){
+
+      spinListenerReady = true;
+
+      lastSpinId = d.id;
+
+      return;
+
+    }
+
+
+    /*
+    Ignore the same spin.
+    */
+
+    if(
+      d.id === lastSpinId ||
+      spinning
+    ) return;
+
+
+    const index =
+      d.winnerIndex;
+
+
+    if(
+      index < 0 ||
+      index >= entries.length
+    ) return;
+
+
+    /*
+    This is a NEW spin that happened
+    while the viewer was already here.
+    */
+
+    lastSpinId = d.id;
+
+    spinning = true;
+
+
+    const deg =
+      360 / entries.length;
+
+
+    const center =
+      index * deg +
+      deg / 2;
+
+
+    rotation +=
+      360 * 8 +
+      (360 - center);
+
+
+    canvas.style.transform =
+      `rotate(${rotation}deg)`;
+
+
+    setTimeout(()=>{
+
+      document.getElementById(
+        "winnerName"
+      ).textContent =
+        entries[index];
+
+
+      document.getElementById(
+        "winner"
+      ).classList.add("show");
+
+
+      spinning = false;
+
+    },6100);
+
+  }
+
+);
+
+</script>
+
+</body>
+</html>
