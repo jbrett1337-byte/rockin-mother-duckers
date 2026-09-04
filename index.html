@@ -1,151 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rockin Mother Duckers Giveaway</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:#080808;color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center}
-.header{padding:28px 16px 8px}
-.header h1{margin:0;font-size:clamp(2rem,8vw,4.5rem);font-style:italic;text-transform:uppercase;line-height:.95}
-.rockin{color:#fff}.duckers{color:#f5b800}
-.header p{color:#aaa;font-size:1.05rem;margin:12px 0 0}
-.admin-panel{width:min(92vw,700px);margin:14px auto 10px;background:#151515;border:2px solid #333;border-radius:18px;padding:16px}
-.admin-panel h2{margin:0 0 12px;color:#f5b800;font-size:1.05rem;letter-spacing:1px}
-.add-row{display:flex;gap:8px;justify-content:center}
-input{flex:1;min-width:0;padding:14px;border-radius:10px;border:1px solid #555;background:#0c0c0c;color:#fff;font-size:1rem}
-button{border:none;border-radius:12px;padding:14px 18px;font-size:1rem;font-weight:800;cursor:pointer;text-transform:uppercase}
-#addBtn,#spinBtn{background:#f5b800;color:#111;box-shadow:0 4px 0 #8f6900}
-#spinBtn:active,#addBtn:active{transform:translateY(3px);box-shadow:0 1px 0 #8f6900}
-.wheel-area{position:relative;width:min(90vw,650px);aspect-ratio:1;margin:12px auto 25px}
-#pointer{position:absolute;z-index:5;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:28px solid transparent;border-right:28px solid transparent;border-top:55px solid #f5b800;filter:drop-shadow(0 3px 3px #000)}
-#wheel{width:100%;height:100%;border-radius:50%;border:10px solid #f5b800;background:#222;box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);transition:transform 6s cubic-bezier(.15,.85,.15,1)}
-.controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:0 20px 25px}
-#resetBtn{background:#333;color:#fff}
-.entries{width:min(92vw,700px);margin:0 auto 40px;text-align:left}
-.entries h3{text-align:center;color:#f5b800}
-#entryList{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.entry{display:flex;align-items:center;gap:7px;background:#181818;border:1px solid #333;border-radius:999px;padding:8px 10px 8px 14px;color:#ddd}
-.entry button{padding:3px 8px;background:#b31313;color:#fff;border-radius:999px;font-size:.8rem;box-shadow:none}
-.empty{color:#777;text-align:center}
-#count{color:#aaa;text-align:center;margin-bottom:12px}
-#winner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;align-items:center;justify-content:center;padding:20px}
-#winner.show{display:flex}
-.winner-box{background:#151515;border:4px solid #f5b800;border-radius:25px;padding:40px 25px;max-width:500px;width:100%;box-shadow:0 0 50px rgba(245,184,0,.5)}
-.winner-box h2{font-size:1.1rem;letter-spacing:2px;color:#f5b800;margin:0 0 15px}
-#winnerName{font-size:clamp(2rem,10vw,4rem);margin:0 0 25px;word-break:break-word}
-.winner-box button{background:#f5b800;color:#111}
-.footer{color:#555;padding:20px;font-size:.85rem}
-@media(max-width:480px){.add-row{flex-direction:column}.add-row button{width:100%}}
-</style>
-</head>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Rockin Mother Duckers Giveaway</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080808;color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center}.header{padding:28px 16px 8px}.header h1{margin:0;font-size:clamp(2rem,8vw,4.5rem);font-style:italic;text-transform:uppercase;line-height:.95}.rockin{color:#fff}.duckers{color:#f5b800}.header p{color:#aaa;font-size:1.05rem;margin:12px 0 0}.wheel-area{position:relative;width:min(90vw,650px);aspect-ratio:1;margin:12px auto 25px}#pointer{position:absolute;z-index:5;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:28px solid transparent;border-right:28px solid transparent;border-top:55px solid #f5b800;filter:drop-shadow(0 3px 3px #000)}#wheel{width:100%;height:100%;border-radius:50%;border:10px solid #f5b800;background:#222;box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);transition:transform 6s cubic-bezier(.15,.85,.15,1)}button{border:none;border-radius:12px;padding:14px 18px;font-size:1rem;font-weight:800;cursor:pointer;text-transform:uppercase;background:#f5b800;color:#111;box-shadow:0 4px 0 #8f6900}button:disabled{opacity:.5;cursor:not-allowed}.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px 16px 25px}.secondary{background:#333;color:#fff;box-shadow:none}.admin-panel{width:min(92vw,700px);margin:14px auto;background:#151515;border:2px solid #333;border-radius:18px;padding:16px}.add-row{display:flex;gap:8px;justify-content:center}.add-row input{flex:1;min-width:0;padding:14px;border-radius:10px;border:1px solid #555;background:#0c0c0c;color:#fff;font-size:1rem}.entries{width:min(92vw,700px);margin:0 auto 40px}.entries h3{color:#f5b800}.entry{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#181818;border:1px solid #333;border-radius:12px;padding:10px 12px;margin:7px 0;text-align:left}.entry .actions{display:flex;gap:6px}.entry .mini{padding:6px 10px;font-size:.85rem;box-shadow:none}.entry .remove{background:#b31313;color:#fff}.empty{color:#777;padding:20px}.viewer-note{color:#aaa;margin:0 15px 12px}.status{color:#f5b800;font-weight:bold}.footer{color:#555;padding:20px;font-size:.85rem}#winner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;align-items:center;justify-content:center;padding:20px}#winner.show{display:flex}.winner-box{background:#151515;border:4px solid #f5b800;border-radius:25px;padding:40px 25px;max-width:500px;width:100%;box-shadow:0 0 50px rgba(245,184,0,.5)}.winner-box h2{font-size:1.1rem;letter-spacing:2px;color:#f5b800;margin:0 0 15px}#winnerName{font-size:clamp(2rem,10vw,4rem);margin:0 0 25px;word-break:break-word}@media(max-width:480px){.add-row{flex-direction:column}.add-row button{width:100%}}</style></head>
 <body>
-<div class="header">
-  <h1><span class="rockin">ROCKIN MOTHER</span><span class="duckers"> DUCKERS</span></h1>
-  <p>🦆 800 MEMBER GIVEAWAY 🎡</p>
-</div>
-
-<div class="admin-panel">
-  <h2>ADD GIVEAWAY ENTRIES</h2>
-  <div class="add-row">
-    <input id="nameInput" maxlength="60" placeholder="Enter a name...">
-    <button id="addBtn">+ Add</button>
-  </div>
-</div>
-
-<div class="wheel-area">
-  <div id="pointer"></div>
-  <canvas id="wheel" width="700" height="700"></canvas>
-</div>
-
-<div class="controls">
-  <button id="spinBtn">🦆 Spin The Mother Ducker!</button>
-  <button id="resetBtn">Reset Wheel</button>
-</div>
-
-<div class="entries">
-  <h3>GIVEAWAY ENTRIES</h3>
-  <div id="count"></div>
-  <div id="entryList"></div>
-</div>
-
-<div id="winner">
-  <div class="winner-box">
-    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
-    <h1 id="winnerName"></h1>
-    <button onclick="closeWinner()">Keep Rockin 🤘</button>
-  </div>
-</div>
-<div class="footer">ROCKIN MOTHER DUCKERS • 800 MEMBER GIVEAWAY</div>
-
-<script>
-let entries = JSON.parse(localStorage.getItem("rmdEntries") || "[]");
-let rotation = 0, spinning = false;
+<div class="header"><h1><span class="rockin">ROCKIN MOTHER</span><span class="duckers"> DUCKERS</span></h1><p>🦆 800 MEMBER GIVEAWAY 🎡</p></div>
+<p class="viewer-note">LIVE GIVEAWAY • Sit back and watch the wheel. 🤘🦆</p>
+<div class="wheel-area"><div id="pointer"></div><canvas id="wheel" width="700" height="700"></canvas></div>
+<div class="entries"><h3>GIVEAWAY ENTRIES</h3><div id="count"></div><div id="entryList"></div></div>
+<div id="winner"><div class="winner-box"><h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2><h1 id="winnerName"></h1></div></div>
+<div class="footer">ROCKIN MOTHER DUCKERS • LIVE GIVEAWAY</div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,onValue} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain: "rmd-giveaway.firebaseapp.com",
+  databaseURL: "https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId: "rmd-giveaway",
+  storageBucket: "rmd-giveaway.firebasestorage.app",
+  messagingSenderId: "891164634736",
+  appId: "1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+const app=initializeApp(firebaseConfig),db=getDatabase(app);
 const canvas=document.getElementById("wheel"),ctx=canvas.getContext("2d");
-
-function save(){localStorage.setItem("rmdEntries",JSON.stringify(entries))}
+let entries=[],rotation=0,lastSpinId=null,spinning=false;
 function drawWheel(){
-  const size=canvas.width,c=size/2,r=c-8;
-  ctx.clearRect(0,0,size,size);
-  if(!entries.length){
-    ctx.beginPath();ctx.arc(c,c,r,0,Math.PI*2);ctx.fillStyle="#222";ctx.fill();
-    ctx.fillStyle="#f5b800";ctx.font="bold 28px Arial";ctx.textAlign="center";
-    ctx.fillText("ADD ENTRIES",c,c-10);ctx.fillText("TO BEGIN",c,c+30);
-    return;
-  }
-  const slice=Math.PI*2/entries.length;
-  entries.forEach((name,i)=>{
-    const start=i*slice-Math.PI/2;
-    ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,r,start,start+slice);ctx.closePath();
-    ctx.fillStyle=i%3===0?"#b31313":i%3===1?"#181818":"#08783d";ctx.fill();
-    ctx.strokeStyle="#f5b800";ctx.lineWidth=3;ctx.stroke();
-    ctx.save();ctx.translate(c,c);ctx.rotate(start+slice/2);
-    ctx.fillStyle="#fff";ctx.font=`bold ${Math.max(11,Math.min(22,220/entries.length))}px Arial`;ctx.textAlign="right";
-    let text=name.length>20?name.slice(0,20)+"…":name;
-    ctx.fillText(text,r-28,6);ctx.restore();
-  });
-  ctx.beginPath();ctx.arc(c,c,70,0,Math.PI*2);ctx.fillStyle="#f5b800";ctx.fill();
-  ctx.beginPath();ctx.arc(c,c,55,0,Math.PI*2);ctx.fillStyle="#111";ctx.fill();
-  ctx.fillStyle="#f5b800";ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText("RMD",c,c+6);
+ const s=canvas.width,c=s/2,r=c-8;ctx.clearRect(0,0,s,s);
+ if(!entries.length){ctx.beginPath();ctx.arc(c,c,r,0,Math.PI*2);ctx.fillStyle="#222";ctx.fill();ctx.fillStyle="#f5b800";ctx.font="bold 28px Arial";ctx.textAlign="center";ctx.fillText("WAITING FOR",c,c-10);ctx.fillText("ENTRIES",c,c+30);return}
+ const slice=Math.PI*2/entries.length;entries.forEach((name,i)=>{const start=i*slice-Math.PI/2;ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,r,start,start+slice);ctx.closePath();ctx.fillStyle=i%3===0?"#b31313":i%3===1?"#181818":"#08783d";ctx.fill();ctx.strokeStyle="#f5b800";ctx.lineWidth=3;ctx.stroke();ctx.save();ctx.translate(c,c);ctx.rotate(start+slice/2);ctx.fillStyle="#fff";ctx.font=`bold ${Math.max(10,Math.min(22,220/entries.length))}px Arial`;ctx.textAlign="right";ctx.fillText(name.length>20?name.slice(0,20)+"…":name,r-28,6);ctx.restore()});
+ ctx.beginPath();ctx.arc(c,c,70,0,Math.PI*2);ctx.fillStyle="#f5b800";ctx.fill();ctx.beginPath();ctx.arc(c,c,55,0,Math.PI*2);ctx.fillStyle="#111";ctx.fill();ctx.fillStyle="#f5b800";ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText("RMD",c,c+6);
 }
-function renderEntries(){
-  const list=document.getElementById("entryList"),count=document.getElementById("count");
-  count.textContent=`${entries.length} total entr${entries.length===1?"y":"ies"}`;
-  list.innerHTML="";
-  if(!entries.length){list.innerHTML='<div class="empty">No entries yet — add your first Mother Ducker above.</div>';drawWheel();return}
-  entries.forEach((name,i)=>{
-    const item=document.createElement("div");item.className="entry";
-    const text=document.createElement("span");text.textContent=name;
-    const remove=document.createElement("button");remove.textContent="×";remove.title="Remove entry";
-    remove.onclick=()=>{if(spinning)return;entries.splice(i,1);save();renderEntries()};
-    item.append(text,remove);list.appendChild(item);
-  });drawWheel();
-}
-function addEntry(){
-  const input=document.getElementById("nameInput"),name=input.value.trim();
-  if(!name)return;
-  entries.push(name);save();input.value="";renderEntries();input.focus();
-}
-function spinWheel(){
-  if(spinning||entries.length<2){alert("Add at least 2 entries before spinning.");return}
-  spinning=true;const winnerIndex=Math.floor(Math.random()*entries.length);
-  const sliceDegrees=360/entries.length,winnerCenter=winnerIndex*sliceDegrees+sliceDegrees/2;
-  const extraSpins=360*(6+Math.floor(Math.random()*4));
-  rotation+=extraSpins+(360-winnerCenter);
-  canvas.style.transform=`rotate(${rotation}deg)`;
-  setTimeout(()=>{document.getElementById("winnerName").textContent=entries[winnerIndex];document.getElementById("winner").classList.add("show");spinning=false},6100);
-}
-function closeWinner(){document.getElementById("winner").classList.remove("show")}
-function resetWheel(){
-  if(spinning)return;rotation=0;canvas.style.transition="none";canvas.style.transform="rotate(0deg)";
-  setTimeout(()=>canvas.style.transition="transform 6s cubic-bezier(.15,.85,.15,1)",50);
-}
-document.getElementById("addBtn").onclick=addEntry;
-document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")addEntry()});
-document.getElementById("spinBtn").onclick=spinWheel;
-document.getElementById("resetBtn").onclick=resetWheel;
-renderEntries();
-</script>
-</body>
-</html>
+function render(){document.getElementById("count").textContent=`${entries.length} total entr${entries.length===1?"y":"ies"}`;document.getElementById("entryList").innerHTML=entries.length?entries.map(n=>`<div class="entry"><span>${n}</span></div>`).join(""):'<div class="empty">Entries will appear here.</div>';drawWheel()}
+onValue(ref(db,"giveaway/entries"),snap=>{entries=Array.isArray(snap.val())?snap.val().filter(Boolean):[];render()});
+onValue(ref(db,"giveaway/spin"),snap=>{const d=snap.val();if(!d||d.id===lastSpinId||spinning)return;lastSpinId=d.id;const index=d.winnerIndex;if(index<0||index>=entries.length)return;spinning=true;const deg=360/entries.length,center=index*deg+deg/2;rotation+=360*8+(360-center);canvas.style.transform=`rotate(${rotation}deg)`;setTimeout(()=>{document.getElementById("winnerName").textContent=entries[index];document.getElementById("winner").classList.add("show");spinning=false},6100)});
+</script></body></html>
