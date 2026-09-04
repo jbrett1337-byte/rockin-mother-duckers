@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rockin Mother Duckers Giveaway</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#080808;color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center}
+.header{padding:28px 16px 8px}
+.header h1{margin:0;font-size:clamp(2rem,8vw,4.5rem);font-style:italic;text-transform:uppercase;line-height:.95}
+.rockin{color:#fff}.duckers{color:#f5b800}
+.header p,.viewer-note{color:#aaa;font-size:1.05rem;margin:12px 0}
+.wheel-area{position:relative;width:min(90vw,650px);aspect-ratio:1;margin:18px auto 25px}
+#pointer{position:absolute;z-index:5;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:28px solid transparent;border-right:28px solid transparent;border-top:55px solid #f5b800;filter:drop-shadow(0 3px 3px #000)}
+#wheel{width:100%;height:100%;border-radius:50%;border:10px solid #f5b800;background:#222;box-shadow:0 0 0 5px #111,0 0 35px rgba(245,184,0,.35);transition:transform 6s cubic-bezier(.15,.85,.15,1)}
+.entries{width:min(92vw,700px);margin:0 auto 40px}
+.entries h3{color:#f5b800}
+.entry{background:#181818;border:1px solid #333;border-radius:12px;padding:10px 12px;margin:7px 0;text-align:left}
+.empty{color:#777;padding:20px}
+.footer{color:#555;padding:20px;font-size:.85rem}
+#soundNotice{font-size:.8rem;color:#666;margin-top:-10px}
+#winner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:20;align-items:center;justify-content:center;padding:20px}
+#winner.show{display:flex}
+.winner-box{background:#151515;border:4px solid #f5b800;border-radius:25px;padding:40px 25px;max-width:500px;width:100%;box-shadow:0 0 50px rgba(245,184,0,.5)}
+.winner-box h2{font-size:1.1rem;letter-spacing:2px;color:#f5b800;margin:0 0 15px}
+#winnerName{font-size:clamp(2rem,10vw,4rem);margin:0;word-break:break-word}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1><span class="rockin">ROCKIN MOTHER</span><span class="duckers"> DUCKERS</span></h1>
+  <p>🦆 800 MEMBER GIVEAWAY 🎡</p>
+</div>
+
+<p class="viewer-note">LIVE GIVEAWAY • Sit back and watch the wheel. 🤘🦆</p>
+<div id="soundNotice">🔇 Sound is controlled by the admin</div>
+
+<div class="wheel-area">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="700" height="700"></canvas>
+</div>
+
+<div class="entries">
+  <h3>GIVEAWAY ENTRIES</h3>
+  <div id="count"></div>
+  <div id="entryList"></div>
+</div>
+
+<div id="winner">
+  <div class="winner-box">
+    <h2>🦆 WINNER WINNER MOTHER DUCKER! 🦆</h2>
+    <h1 id="winnerName"></h1>
+  </div>
+</div>
+
+<div class="footer">ROCKIN MOTHER DUCKERS • LIVE GIVEAWAY</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,onValue} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyCScB2EiV47XvJ0Jm5smJ7Z_B_l8j3NGho",
+  authDomain:"rmd-giveaway.firebaseapp.com",
+  databaseURL:"https://rmd-giveaway-default-rtdb.firebaseio.com",
+  projectId:"rmd-giveaway",
+  storageBucket:"rmd-giveaway.firebasestorage.app",
+  messagingSenderId:"891164634736",
+  appId:"1:891164634736:web:cb0a15e2cff8700f924eb5"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+let entries=[];
+let rotation=0;
+let spinning=false;
+let lastSpinId=null;
+let lastResetId=null;
+let soundEnabled=false;
+let audioCtx=null;
+
+function unlockAudio(){
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  }
+  if(audioCtx.state==="suspended") audioCtx.resume();
+}
+
+document.addEventListener("touchstart",unlockAudio,{once:true});
+document.addEventListener("click",unlockAudio,{once:true});
+
+function tone(freq,duration=.08,type="sine",volume=.08){
+  if(!soundEnabled||!audioCtx)return;
+
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+
+  osc.type=type;
+  osc.frequency.value=freq;
+
+  gain.gain.setValueAtTime(volume,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime+duration);
+}
+
+function tick(){
+  tone(850,.025,"square",.04);
+}
+
+function winnerSound(){
+  tone(523,.12,"sine",.09);
+  setTimeout(()=>tone(659,.12,"sine",.09),140);
+  setTimeout(()=>tone(784,.16,"sine",.09),280);
+  setTimeout(()=>tone(1046,.35,"sine",.1),450);
+}
+
+function drawWheel(){
+  const s=canvas.width;
+  const c=s/2;
+  const r=c-8;
+
+  ctx.clearRect(0,0,s,s);
+
+  if(!entries.length){
+    ctx.beginPath();
+    ctx.arc(c,c,r,0,Math.PI*2);
+    ctx.fillStyle="#222";
+    ctx.fill();
+
+    ctx.fillStyle="#f5b800";
+    ctx.font="bold 28px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("WAITING FOR",c,c-10);
+    ctx.fillText("ENTRIES",c,c+30);
+    return;
+  }
+
+  const slice=Math.PI*2/entries.length;
+
+  entries.forEach((name,i)=>{
+    const start=i*slice-Math.PI/2;
+
+    ctx.beginPath();
+    ctx.moveTo(c,c);
+    ctx.arc(c,c,r,start,start+slice);
+    ctx.closePath();
+
+    ctx.fillStyle=i%3===0?"#b31313":i%3===1?"#181818":"#08783d";
+    ctx.fill();
+
+    ctx.strokeStyle="#f5b800";
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(c,c);
+    ctx.rotate(start+slice/2);
+
+    ctx.fillStyle="#fff";
+    ctx.font=`bold ${Math.max(10,Math.min(22,220/entries.length))}px Arial`;
+    ctx.textAlign="right";
+
+    let text=name.length>20?name.slice(0,20)+"…":name;
+    ctx.fillText(text,r-28,6);
+
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(c,c,70,0,Math.PI*2);
+  ctx.fillStyle="#f5b800";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(c,c,55,0,Math.PI*2);
+  ctx.fillStyle="#111";
+  ctx.fill();
+
+  ctx.fillStyle="#f5b800";
+  ctx.font="bold 16px Arial";
+  ctx.textAlign="center";
+  ctx.fillText("RMD",c,c+6);
+}
+
+function render(){
+  document.getElementById("count").textContent=
+    `${entries.length} total entr${entries.length===1?"y":"ies"}`;
+
+  document.getElementById("entryList").innerHTML=
+    entries.length
+      ?entries.map(name=>`<div class="entry">${escapeHtml(name)}</div>`).join("")
+      :'<div class="empty">Entries will appear here.</div>';
+
+  drawWheel();
+}
+
+function escapeHtml(str){
+  const div=document.createElement("div");
+  div.textContent=str;
+  return div.innerHTML;
+}
+
+onValue(ref(db,"giveaway/entries"),snap=>{
+  entries=Array.isArray(snap.val())?snap.val().filter(Boolean):[];
+  render();
+});
+
+onValue(ref(db,"giveaway/settings/soundEnabled"),snap=>{
+  soundEnabled=snap.val()===true;
+
+  document.getElementById("soundNotice").textContent=
+    soundEnabled
+      ?"🔊 Admin has enabled giveaway sound"
+      :"🔇 Sound is controlled by the admin";
+});
+
+onValue(ref(db,"giveaway/reset"),snap=>{
+  const data=snap.val();
+
+  if(!data||data.id===lastResetId)return;
+
+  lastResetId=data.id;
+  spinning=false;
+  rotation=0;
+
+  canvas.style.transition="none";
+  canvas.style.transform="rotate(0deg)";
+
+  setTimeout(()=>{
+    canvas.style.transition="transform 6s cubic-bezier(.15,.85,.15,1)";
+  },50);
+
+  document.getElementById("winner").classList.remove("show");
+});
+
+onValue(ref(db,"giveaway/spin"),snap=>{
+  const data=snap.val();
+
+  if(!data||data.id===lastSpinId||spinning)return;
+
+  lastSpinId=data.id;
+
+  const index=data.winnerIndex;
+
+  if(index<0||index>=entries.length)return;
+
+  spinning=true;
+
+  document.getElementById("winner").classList.remove("show");
+
+  const deg=360/entries.length;
+  const center=index*deg+deg/2;
+
+  rotation+=360*8+(360-center);
+
+  canvas.style.transform=`rotate(${rotation}deg)`;
+
+  let ticks=0;
+  const tickTimer=setInterval(()=>{
+    tick();
+    ticks++;
+    if(ticks>28)clearInterval(tickTimer);
+  },180);
+
+  setTimeout(()=>{
+    document.getElementById("winnerName").textContent=entries[index];
+    document.getElementById("winner").classList.add("show");
+
+    winnerSound();
+
+    spinning=false;
+  },6100);
+});
+
+drawWheel();
+</script>
+
+</body>
+</html>
